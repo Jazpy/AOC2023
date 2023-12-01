@@ -1,3 +1,6 @@
+# AOC input files
+inputs/*
+
 # Prerequisites
 *.d
 
