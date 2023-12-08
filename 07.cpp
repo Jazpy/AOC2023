@@ -4,6 +4,7 @@
 #include <string>
 #include <array>
 #include <map>
+#include <set>
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 
@@ -12,6 +13,7 @@ using std::vector;
 using std::string;
 using std::array;
 using std::map;
+using std::set;
 
 void get_lines(vector<string> &lines, string filename)
 {
@@ -45,20 +47,19 @@ int get_type(array<int, 5> &sets, int jokers)
     return type;
 }
 
-bool compare_cards(const array<int, 3> &lhs, const array<int, 3> &rhs)
-{
-    if (lhs[1] != rhs[1])
-        return lhs[1] < rhs[1];
-    return lhs[0] < rhs[0];
-}
-
 void solution(vector<string> &lines, long &silver, long &gold)
 {
     map<char, int> card_map = {
         {'2', 0x2}, {'3', 0x3}, {'4', 0x4}, {'5', 0x5}, {'6', 0x6}, {'7', 0x7}, {'8', 0x8}, {'9', 0x9},
         {'T', 0xA}, {'J', 0xB}, {'Q', 0xC}, {'K', 0xD}, {'A', 0xE}};
-    vector<array<int, 3>> silver_hands;
-    vector<array<int, 3>> gold_hands;
+    auto compare_cards = [](const array<int, 3> &lhs, const array<int, 3> &rhs)
+    {
+        if (lhs[1] != rhs[1])
+            return lhs[1] < rhs[1];
+        return lhs[0] < rhs[0];
+    };
+    set<array<int, 3>, decltype(compare_cards)> silver_hands;
+    set<array<int, 3>, decltype(compare_cards)> gold_hands;
 
     for (auto &l : lines) {
         vector<string> toks;
@@ -82,7 +83,7 @@ void solution(vector<string> &lines, long &silver, long &gold)
         array<int, 5> silver_sets = {0, 0, 0, 0, 0}; // singles, pairs, threes, fours, fives
         for (auto &p : counts)
             ++silver_sets[p.second - 1];
-        silver_hands.push_back({silver_card_number, get_type(silver_sets, 0), bid});
+        silver_hands.insert({silver_card_number, get_type(silver_sets, 0), bid});
 
         // Get type of gold hand
         array<int, 5> gold_sets = {0, 0, 0, 0, 0}; // singles, pairs, threes, fours, fives
@@ -91,18 +92,18 @@ void solution(vector<string> &lines, long &silver, long &gold)
             if (p.first != 'J')
                 ++gold_sets[p.second - 1];
         }
-        gold_hands.push_back({gold_card_number, get_type(gold_sets, jokers), bid});
+        gold_hands.insert({gold_card_number, get_type(gold_sets, jokers), bid});
     }
 
     silver = 0;
-    std::sort(silver_hands.begin(), silver_hands.end(), compare_cards);
-    for (size_t i = 0; i != silver_hands.size(); ++i)
-        silver += silver_hands[i][2] * (i + 1);
+    size_t ctr = 1;
+    for (auto [num, type, bid] : silver_hands)
+        silver += bid * ctr++;
 
     gold = 0;
-    std::sort(gold_hands.begin(), gold_hands.end(), compare_cards);
-    for (size_t i = 0; i != gold_hands.size(); ++i)
-        gold += gold_hands[i][2] * (i + 1);
+    ctr = 1;
+    for (auto [num, type, bid] : gold_hands)
+        gold += bid * ctr++;
 }
 
 int main()
