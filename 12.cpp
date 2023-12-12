@@ -3,14 +3,14 @@
 #include <vector>
 #include <string>
 #include <cstdint>
-#include <unordered_map>
+#include <map>
 #include <tuple>
 #include <boost/algorithm/string.hpp>
 
 using std::cout;
 using std::vector;
 using std::string;
-using std::unordered_map;
+using std::map;
 using std::tuple;
 
 void get_lines(vector<string> &lines, string filename)
@@ -30,11 +30,10 @@ uint64_t validate(string &s, vector<int> &b, int hashes)
 
     vector<int> blocks;
     int consuming = 0;
-
     for (auto c : s) {
         if (c == '#') {
             ++consuming;
-        } else {
+        } else if (consuming) {
             blocks.push_back(consuming);
             consuming = 0;
         }
@@ -46,10 +45,9 @@ uint64_t validate(string &s, vector<int> &b, int hashes)
     return blocks == b ? 1 : 0;
 }
 
-uint64_t dp(string &s, int hashes, size_t s_idx, vector<int> &b)
+uint64_t dp(string &s, int hashes, size_t s_idx, vector<int> &b, map<string, uint64_t> &cache)
 {
-    static unordered_map<string, uint64_t> cache;
-    auto   params = s + std::to_string(hashes) + "|" + std::to_string(s_idx);
+    string params = s + "|" + std::to_string(hashes) + "|" + std::to_string(s_idx);
     if (cache.contains(params))
         return cache[params];
 
@@ -57,32 +55,36 @@ uint64_t dp(string &s, int hashes, size_t s_idx, vector<int> &b)
         return cache[params] = validate(s, b, hashes);
 
     if (s[s_idx] != '?')
-        return cache[params] = dp(s, hashes, s_idx + 1, b);
+        return cache[params] = dp(s, hashes, s_idx + 1, b, cache);
 
     auto s_dot   = s;
     s_dot[s_idx] = '.';
-    uint64_t dot_valids = dp(s_dot, hashes, s_idx + 1, b);
+    uint64_t dot_valids = dp(s_dot, hashes, s_idx + 1, b, cache);
 
     uint64_t hash_valids = 0;
     if (hashes > 0) {
         auto s_hash   = s;
         s_hash[s_idx] = '#';
-        hash_valids   = dp(s_hash, hashes - 1, s_idx + 1, b);
+        hash_valids   = dp(s_hash, hashes - 1, s_idx + 1, b, cache);
     }
 
     return cache[params] = dot_valids + hash_valids;
 }
 
-void solution(vector<string> &lines, int64_t &silver, int64_t &gold)
+void solution(vector<string> &lines, int64_t &ret, bool gold)
 {
-    gold = 0;
+    ret = 0;
     for (auto &l : lines) {
         vector<string> toks;
         vector<string> str_blocks;
         vector<int> blocks;
         boost::split(toks, l, boost::is_any_of(" "), boost::token_compress_on);
-        toks[0] = toks[0] + "?" + toks[0] + "?" +toks[0] + "?" + toks[0] + "?" + toks[0];
-        toks[1] = toks[1] + "," + toks[1] + "," +toks[1] + "," + toks[1] + "," + toks[1];
+
+        if (gold) {
+            toks[0] = toks[0] + "?" + toks[0] + "?" +toks[0] + "?" + toks[0] + "?" + toks[0];
+            toks[1] = toks[1] + "," + toks[1] + "," +toks[1] + "," + toks[1] + "," + toks[1];
+        }
+
         boost::split(str_blocks, toks[1], boost::is_any_of(","));
 
         int hashes = 0;
@@ -96,9 +98,9 @@ void solution(vector<string> &lines, int64_t &silver, int64_t &gold)
                 --hashes;
         }
 
-        uint64_t temp = dp(toks[0], hashes, 0, blocks);
-        cout << temp << std::endl;
-        gold += temp;
+        map<string, uint64_t> cache;
+        uint64_t temp = dp(toks[0], hashes, 0, blocks, cache);
+        ret += temp;
     }
 }
 
@@ -110,7 +112,8 @@ int main()
     int64_t silver = 0;
     int64_t gold   = 0;
 
-    solution(lines, silver, gold);
+    solution(lines, silver, false);
+    solution(lines, gold,   true);
     cout << silver << "\n" << gold << "\n";
 
     return 0;
