@@ -3,15 +3,10 @@
 #include <vector>
 #include <string>
 #include <cstdint>
-#include <tuple>
-#include <bitset>
-#include <boost/algorithm/string.hpp>
 
 using std::cout;
 using std::vector;
 using std::string;
-using std::tuple;
-using std::bitset;
 
 void get_lines(vector<string> &lines, string filename)
 {
