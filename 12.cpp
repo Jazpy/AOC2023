@@ -3,15 +3,13 @@
 #include <vector>
 #include <string>
 #include <cstdint>
-#include <map>
-#include <tuple>
+#include <unordered_map>
 #include <boost/algorithm/string.hpp>
 
 using std::cout;
 using std::vector;
 using std::string;
-using std::map;
-using std::tuple;
+using std::unordered_map;
 
 void get_lines(vector<string> &lines, string filename)
 {
@@ -23,50 +21,47 @@ void get_lines(vector<string> &lines, string filename)
             lines.push_back(line);
 }
 
-uint64_t validate(string &s, vector<int> &b, int hashes)
+uint64_t dp(string &s, int hashes, size_t s_idx, vector<int> &b,
+            unordered_map<string, uint64_t> &cache, int consuming, size_t b_idx)
 {
-    if (hashes != 0)
-        return 0;
+    auto params = s.substr(s_idx) + std::to_string(hashes);
+    for (size_t i = b_idx; i != b.size(); ++i)
+        params += "+" + std::to_string(b[i]);
 
-    vector<int> blocks;
-    int consuming = 0;
-    for (auto c : s) {
-        if (c == '#') {
-            ++consuming;
-        } else if (consuming) {
-            blocks.push_back(consuming);
-            consuming = 0;
-        }
-    }
-
-    if (consuming)
-        blocks.push_back(consuming);
-
-    return blocks == b ? 1 : 0;
-}
-
-uint64_t dp(string &s, int hashes, size_t s_idx, vector<int> &b, map<string, uint64_t> &cache)
-{
-    string params = s + "|" + std::to_string(hashes) + "|" + std::to_string(s_idx);
     if (cache.contains(params))
         return cache[params];
 
-    if (s_idx == s.size())
-        return cache[params] = validate(s, b, hashes);
+    while(s_idx < s.size() && s[s_idx] != '?') {
+        if (s[s_idx] == '#') {
+            ++consuming;
+        } else if (consuming) {
+            if (b_idx == b.size() || b[b_idx++] != consuming)
+                return cache[params] = 0;
+            consuming = 0;
+        }
 
-    if (s[s_idx] != '?')
-        return cache[params] = dp(s, hashes, s_idx + 1, b, cache);
+        ++s_idx;
+    }
 
-    auto s_dot   = s;
-    s_dot[s_idx] = '.';
-    uint64_t dot_valids = dp(s_dot, hashes, s_idx + 1, b, cache);
+    if (s_idx == s.size()) {
+        if (consuming) {
+            if (b_idx == b.size() || b[b_idx++] != consuming)
+                return cache[params] = 0;
+        }
+
+        return cache[params] = b_idx == b.size() ? 1 : 0;
+    }
+
+    s[s_idx] = '.';
+    uint64_t dot_valids = dp(s, hashes, s_idx, b, cache, consuming, b_idx);
 
     uint64_t hash_valids = 0;
     if (hashes > 0) {
-        auto s_hash   = s;
-        s_hash[s_idx] = '#';
-        hash_valids   = dp(s_hash, hashes - 1, s_idx + 1, b, cache);
+        s[s_idx] = '#';
+        hash_valids = dp(s, hashes - 1, s_idx, b, cache, consuming, b_idx);
     }
+
+    s[s_idx] = '?';
 
     return cache[params] = dot_valids + hash_valids;
 }
@@ -74,6 +69,7 @@ uint64_t dp(string &s, int hashes, size_t s_idx, vector<int> &b, map<string, uin
 void solution(vector<string> &lines, int64_t &ret, bool gold)
 {
     ret = 0;
+    unordered_map<string, uint64_t> cache;
     for (auto &l : lines) {
         vector<string> toks;
         vector<string> str_blocks;
@@ -98,9 +94,7 @@ void solution(vector<string> &lines, int64_t &ret, bool gold)
                 --hashes;
         }
 
-        map<string, uint64_t> cache;
-        uint64_t temp = dp(toks[0], hashes, 0, blocks, cache);
-        ret += temp;
+        ret += dp(toks[0], hashes, 0, blocks, cache, 0, 0);
     }
 }
 
