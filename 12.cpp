@@ -44,10 +44,8 @@ uint64_t dp(string &s, int hashes, size_t s_idx, vector<int> &b,
     }
 
     if (s_idx == s.size()) {
-        if (consuming) {
-            if (b_idx == b.size() || b[b_idx++] != consuming)
-                return cache[params] = 0;
-        }
+        if (consuming && (b_idx == b.size() || b[b_idx++] != consuming))
+            return cache[params] = 0;
 
         return cache[params] = b_idx == b.size() ? 1 : 0;
     }
