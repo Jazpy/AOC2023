@@ -25,7 +25,7 @@ void get_lines(vector<string> &lines, string filename)
             lines.push_back(line);
 }
 
-int djikstra(vector<vector<int>> &grid, vector<vector<int>> &moves, bool gold = false)
+int djikstra(vector<vector<int>> &grid, vector<vector<int>> &moves, int limit = 3)
 {
     unordered_set<string> visited;
     priority_queue<tuple<int, vector<int>, vector<int>, int>,
@@ -50,54 +50,34 @@ int djikstra(vector<vector<int>> &grid, vector<vector<int>> &moves, bool gold = 
 
         for (auto &m : moves) {
             int next_distance = distance;
-            int new_straight  = 1;
-            vector<int> next = {curr[0] + m[0], curr[1] + m[1]};
+            vector<int> next  = {curr[0] + m[0], curr[1] + m[1]};
+            int magnitude     = m[0] == 0 ? abs(m[1]) : abs(m[0]);
+            int new_straight  = magnitude;
 
-            if (!gold) {
-                // Colinear
-                if ((prev[0] == curr[0] && curr[0] == next[0]) || (prev[1] == curr[1] && curr[1] == next[1]))
-                    new_straight = straight + 1;
+            // Colinear
+            new_straight = magnitude;
+            if ((prev[0] == curr[0] && curr[0] == next[0]) || (prev[1] == curr[1] && curr[1] == next[1]))
+                new_straight = straight + magnitude;
 
-                // Fail
-                if (next[0] < 0  || next[0] >= grid[0].size() || prev == next ||
-                    next[1] < 0  || next[1] >= grid.size()    || new_straight > 3)
-                    continue;
+            // Backtrack
+            vector<int> inv_prev_dir = {prev_dir[0] * -1, prev_dir[1] * -1};
+            if (inv_prev_dir == m)
+                continue;
 
-                next_distance += grid[next[1]][next[0]];
+            // Fail
+            if (next[0] < 0  || next[0] >= grid[0].size() ||
+                next[1] < 0  || next[1] >= grid.size()    || new_straight > limit)
+                continue;
+
+            // Get heat loss
+            if (m[0] != 0) {
+                int step = m[0] / magnitude;
+                for (int i = curr[0] + step; i != (next[0] + step); i += step)
+                    next_distance += grid[curr[1]][i];
             } else {
-                int magnitude = m[0] == 0 ? abs(m[1]) : abs(m[0]);
-
-                // Colinear
-                new_straight = magnitude;
-                if ((prev[0] == curr[0] && curr[0] == next[0]) || (prev[1] == curr[1] && curr[1] == next[1])) {
-                    if (prev[0] == curr[0] && curr[0] == next[0] && prev[1] < curr[1] and m[1] < 0)
-                        continue;
-                    if (prev[1] == curr[1] && curr[1] == next[1] && prev[0] < curr[0] and m[0] < 0)
-                        continue;
-                    if (prev[0] == curr[0] && curr[0] == next[0] && prev[1] > curr[1] and m[1] > 0)
-                        continue;
-                    if (prev[1] == curr[1] && curr[1] == next[1] && prev[0] > curr[0] and m[0] > 0)
-                        continue;
-                    new_straight = straight + magnitude;
-                }
-
-                // Fail
-                if (next[0] < 0  || next[0] >= grid[0].size() ||
-                    next[1] < 0  || next[1] >= grid.size()    || new_straight > 10)
-                    continue;
-
-                // Get heat loss
-                if (m[0] != 0) {
-                    int left  = curr[0] < next[0] ? curr[0] : next[0];
-                    int right = curr[0] < next[0] ? next[0] : curr[0];
-                    for (int i = left + 1; i <= right; ++i)
-                        next_distance += grid[next[1]][i];
-                } else {
-                    int left  = curr[1] < next[1] ? curr[1] : next[1];
-                    int right = curr[1] < next[1] ? next[1] : curr[1];
-                    for (int i = left + 1; i <= right; ++i)
-                        next_distance += grid[i][next[0]];
-                }
+                int step = m[1] / magnitude;
+                for (int i = curr[1] + step; i != (next[1] + step); i += step)
+                    next_distance += grid[i][next[0]];
             }
 
             q.push(std::make_tuple(next_distance, next, m, new_straight));
@@ -121,7 +101,7 @@ void solution(vector<string> &lines, int &silver, int &gold)
              {6,  0}, {-6,  0}, {0, 6},  {0, -6}, {7, 0}, {-7, 0}, {0, 7}, {0, -7},
              {8,  0}, {-8,  0}, {0, 8},  {0, -8}, {9, 0}, {-9, 0}, {0, 9}, {0, -9},
              {10, 0}, {-10, 0}, {0, 10}, {0, -10}};
-    gold = djikstra(grid, moves, true);
+    gold = djikstra(grid, moves, 10);
 }
 
 int main()
