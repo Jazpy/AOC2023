@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 #include <unordered_set>
-#include <boost/algorithm/string.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 
 using std::cout;
@@ -57,8 +56,8 @@ void solution(vector<string> &lines, int64_t &silver, int64_t &gold)
     for (size_t y = 0; y != lines.size() && !found; ++y) {
         for (size_t x = 0; x != lines[0].size() && !found; ++x) {
             if (lines[y][x] == 'S') {
-                s_x = x;
-                s_y = y;
+                s_x   = x;
+                s_y   = y;
                 found = true;
             }
         }
@@ -74,8 +73,7 @@ int main()
     vector<string> lines;
     get_lines(lines, "inputs/21.txt");
 
-    int64_t silver = 0;
-    int64_t gold   = 0;
+    int64_t silver = 0, gold = 0;
     solution(lines, silver, gold);
     cout << silver << "\n" << gold << "\n";
 
